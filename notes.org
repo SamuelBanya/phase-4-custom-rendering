@@ -1,0 +1,189 @@
+* Notes
+<2022-10-20 Thu 16:24>: I used these commands to install this lab's dependencies accordingly:
+#+begin_src bash
+bundle install
+rails db:migrate db:seed
+#+end_src
+
+The lab itself went on to note that if you use 'render json: (name of Ruby variable representing data)', you might return way more data than you actually need.
+
+With that in mind, you can limit what's sent by using 'built-in serialization' options which include:
+- 'only:' this allows you to ONLY render specific portions of an object
+
+You can basically customize the JSON response so that you can limit sensitive portions of data if you need to.
+
+You can use 'only:' and 'except:' to limit what is shown on screen, and later provide 'error:' and 'status:' option values to figure out why an error might be occurring.
+
+With this in mind, I made the following revision to the 'app/controllers/cheeses_controller.rb' file with the following revision:
+#+begin_src ruby
+class CheesesController < ApplicationController
+
+  # GET /cheeses
+  def index
+    cheeses = Cheese.all
+    # render json: cheeses
+    # Revision to include 'only:' built-in serializer:
+    render json: cheeses, only: [:id, :name, :price, :is_best_seller]
+  end
+
+  # GET /cheeses/:id
+  def show
+    cheese = Cheese.find_by(id: params[:id])
+    render json: cheese
+  end
+
+end
+#+end_src
+
+The lab then went on to describe that you can also use the 'except:' serializer to EXCLUDE various fields in the resulting JSON output, which I then applied to the 'app/controllers/cheeses_controller.rb' file:
+#+begin_src ruby
+class CheesesController < ApplicationController
+
+  # GET /cheeses
+  def index
+    cheeses = Cheese.all
+    # render json: cheeses
+    # Revision to include 'only:' built-in serializer to avoid showing the ':created_at' and ':updated_at'
+    # symbol related data
+
+    # NOTE: Commented out since I later use ':exclude' serializer
+    # render json: cheeses, only: [:id, :name, :price, :is_best_seller]
+
+    # NOTE: Using ':except' serializer, which does the same thing as the above but flipped:
+    render json: cheeses, except: [:created_at, :updated_at]
+  end
+
+  # GET /cheeses/:id
+  def show
+    cheese = Cheese.find_by(id: params[:id])
+    render json: cheese
+  end
+
+end
+#+end_src
+
+The related Docs page on '.as_json()' Ruby method can be found here for reference:
+- https://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html
+
+I then used the 'summary' method from the 'Cheese' class by placing it in the 'show' method of the controller file, 'app/controllers/cheeses_controller.rb', by using the ':methods' option:
+#+begin_src ruby
+class CheesesController < ApplicationController
+
+  # GET /cheeses
+  def index
+    cheeses = Cheese.all
+    # render json: cheeses
+    # Revision to include 'only:' built-in serializer to avoid showing the ':created_at' and ':updated_at'
+    # symbol related data
+
+    # NOTE: Commented out since I later use ':exclude' serializer
+    # render json: cheeses, only: [:id, :name, :price, :is_best_seller]
+
+    # NOTE: Using ':except' serializer, which does the same thing as the above but flipped:
+    render json: cheeses, except: [:created_at, :updated_at]
+  end
+
+  # GET /cheeses/:id
+  def show
+    cheese = Cheese.find_by(id: params[:id])
+    render json: cheese, except: [:created_at, :updated_at], methods: [:summary]
+  end
+
+end
+#+end_src
+
+I then tested this by ensuring that the 'rails s' server command was running, and then visited a specific 'id' value with the 'http://localhost:3000/cheeses/2' URL, which provided the following JSON response:
+#+begin_src json
+// 20221020164333
+// http://localhost:3000/cheeses/2
+
+{
+  "id": 2,
+  "name": "Pepper Jack",
+  "price": 4,
+  "is_best_seller": true,
+  "summary": "Pepper Jack: $4"
+}
+#+end_src
+
+I then refined the existing 'show' methods in the 'app/controllers/cheeses_controller.rb' controller file to include error handling via the 'error:' option with 'if' and 'else' statements:
+#+begin_src ruby
+class CheesesController < ApplicationController
+
+  # GET /cheeses
+  def index
+    cheeses = Cheese.all
+    # render json: cheeses
+    # Revision to include 'only:' built-in serializer to avoid showing the ':created_at' and ':updated_at'
+    # symbol related data
+
+    # NOTE: Commented out since I later use ':exclude' serializer
+    # render json: cheeses, only: [:id, :name, :price, :is_best_seller]
+
+    # NOTE: Using ':except' serializer, which does the same thing as the above but flipped:
+    render json: cheeses, except: [:created_at, :updated_at]
+  end
+
+  # GET /cheeses/:id
+  def show
+    cheese = Cheese.find_by(id: params[:id])
+    if cheese
+      render json: cheese, except: [:created_at, :updated_at], methods: [:summary]
+    else
+      render json: { error: "Cheese not found" }
+    end
+  end
+
+end
+#+end_src
+
+I then tested this revision to include the ':error' option with if and else statements by visiting the 'http://localhost:3000/cheeses/52' URL in a browser, and received the following JSON response:
+#+begin_src json
+// 20221020164808
+// http://localhost:3000/cheeses/52
+
+{
+  "error": "Cheese not found"
+}
+#+end_src
+
+I then further revised the error handling to include the 'status:' option with the ':not_found' value in the 'app/controllers/cheeses_controller.rb' controller file:
+#+begin_src ruby
+class CheesesController < ApplicationController
+
+  # GET /cheeses
+  def index
+    cheeses = Cheese.all
+    # render json: cheeses
+    # Revision to include 'only:' built-in serializer to avoid showing the ':created_at' and ':updated_at'
+    # symbol related data
+
+    # NOTE: Commented out since I later use ':exclude' serializer
+    # render json: cheeses, only: [:id, :name, :price, :is_best_seller]
+
+    # NOTE: Using ':except' serializer, which does the same thing as the above but flipped:
+    render json: cheeses, except: [:created_at, :updated_at]
+  end
+
+  # GET /cheeses/:id
+  def show
+    cheese = Cheese.find_by(id: params[:id])
+    if cheese
+      render json: cheese, except: [:created_at, :updated_at], methods: [:summary]
+    else
+      render json: { error: "Cheese not found" }, status: :not_found
+    end
+  end
+
+end
+#+end_src
+
+I then tested this revision to include the additional 'status:' option with the ':not_found' value by visiting the 'http://localhost:3000/cheeses/105' URL in a browser, and received the following JSON response:
+#+begin_src json
+// 20221020165013
+// http://localhost:3000/cheeses/105
+
+{
+  "error": "Cheese not found"
+}
+#+end_src
