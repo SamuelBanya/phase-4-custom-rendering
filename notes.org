@@ -65,7 +65,7 @@ end
 The related Docs page on '.as_json()' Ruby method can be found here for reference:
 - https://api.rubyonrails.org/classes/ActiveModel/Serializers/JSON.html
 
-I then used the 'summary' method from the 'Cheese' class by placing it in the 'show' method of the controller file, 'app/controllers/cheeses_controller.rb', by using the ':methods' option:
+I then used the 'summary' method from the 'Cheese' class's 'Cheese' model by placing it in the 'show' method of the controller file, 'app/controllers/cheeses_controller.rb', by using the ':methods' option:
 #+begin_src ruby
 class CheesesController < ApplicationController
 
